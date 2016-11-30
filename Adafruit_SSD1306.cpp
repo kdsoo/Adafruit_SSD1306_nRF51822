@@ -33,7 +33,7 @@ All text above, and the splash screen below must be included in any redistributi
 #include <Wire.h>
 #include <SPI.h>
 #include "Adafruit_GFX.h"
-#include "Adafruit_SSD1306.h"
+#include "Adafruit_SSD1306_NRF51822.h"
 
 // the memory buffer for the LCD
 
@@ -141,8 +141,8 @@ void Adafruit_SSD1306::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 }
 
-Adafruit_SSD1306::Adafruit_SSD1306(int8_t SID, int8_t SCLK, int8_t DC, int8_t RST, int8_t CS) : Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT) {
-  cs = CS;
+Adafruit_SSD1306::Adafruit_SSD1306(int8_t SID, int8_t SCLK, int8_t DC, int8_t RST, int8_t argCS) : Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT) {
+  cs = argCS;
   rst = RST;
   dc = DC;
   sclk = SCLK;
@@ -151,10 +151,10 @@ Adafruit_SSD1306::Adafruit_SSD1306(int8_t SID, int8_t SCLK, int8_t DC, int8_t RS
 }
 
 // constructor for hardware SPI - we indicate DataCommand, ChipSelect, Reset
-Adafruit_SSD1306::Adafruit_SSD1306(int8_t DC, int8_t RST, int8_t CS) : Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT) {
+Adafruit_SSD1306::Adafruit_SSD1306(int8_t DC, int8_t RST, int8_t argCS) : Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT) {
   dc = DC;
   rst = RST;
-  cs = CS;
+  cs = argCS;
   hwSPI = true;
 }
 
@@ -170,6 +170,7 @@ void Adafruit_SSD1306::begin(uint8_t vccstate, uint8_t i2caddr, bool reset) {
   _vccstate = vccstate;
   _i2caddr = i2caddr;
 
+#ifndef NOSPI
   // set pin directions
   if (sid != -1){
     pinMode(dc, OUTPUT);
@@ -202,6 +203,7 @@ void Adafruit_SSD1306::begin(uint8_t vccstate, uint8_t i2caddr, bool reset) {
   }
   else
   {
+#endif
     // I2C Init
     Wire.begin();
 #ifdef __SAM3X8E__
@@ -209,7 +211,9 @@ void Adafruit_SSD1306::begin(uint8_t vccstate, uint8_t i2caddr, bool reset) {
     TWI1->TWI_CWGR = 0;
     TWI1->TWI_CWGR = ((VARIANT_MCK / (2 * 400000)) - 4) * 0x101;
 #endif
+#ifndef NOSPI
   }
+#endif
   if ((reset) && (rst >= 0)) {
     // Setup reset pin direction (used by both SPI and I2C)
     pinMode(rst, OUTPUT);
@@ -493,7 +497,9 @@ void Adafruit_SSD1306::clearDisplay(void) {
 inline void Adafruit_SSD1306::fastSPIwrite(uint8_t d) {
 
   if(hwSPI) {
+#ifndef NOSPI
     (void)SPI.transfer(d);
+#endif
   } else {
     for(uint8_t bit = 0x80; bit; bit >>= 1) {
 #ifdef HAVE_PORTREG
